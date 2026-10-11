@@ -32,10 +32,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android 36 platform
-        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          yes | sdkmanager --licenses || true
+          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Unit tests, lint, and debug APKs
         run: |
           chmod +x gradlew scripts/*.sh scripts/*.py
