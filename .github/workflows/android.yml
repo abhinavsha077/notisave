@@ -35,8 +35,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android 36 platform
         run: |
-          yes | sdkmanager --licenses || true
-          yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)
+          yes | "$SDKMANAGER" --licenses || true
+          yes | "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" || true
       - name: Unit tests, lint, and debug APKs
         run: |
           chmod +x gradlew scripts/*.sh scripts/*.py

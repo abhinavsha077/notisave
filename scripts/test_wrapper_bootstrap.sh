@@ -6,8 +6,9 @@ trap 'rm -rf "$WORK"' EXIT INT TERM
 
 PROJECT="$WORK/project"
 DIST="$WORK/fake-gradle"
-mkdir -p "$PROJECT/gradle/wrapper" "$DIST/gradle-fake/bin"
-cp "$ROOT/gradle/wrapper/gradle-wrapper.jar" "$PROJECT/gradle/wrapper/"
+mkdir -p "$PROJECT/gradle/wrapper" "$DIST/gradle-fake/bin" "$WORK/bin"
+javac -d "$WORK/bin" "$ROOT/gradle/wrapper-src/org/gradle/wrapper/GradleWrapperMain.java"
+jar -cfe "$PROJECT/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain -C "$WORK/bin" .
 cp "$ROOT/gradlew" "$PROJECT/"
 chmod +x "$PROJECT/gradlew"
 cat > "$DIST/gradle-fake/bin/gradle" <<'EOF'
