@@ -1,0 +1,728 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "7f5018fb64dc57fd2a098896775a8fbb",
+    "entities": [
+      {
+        "tableName": "app_sources",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`packageName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `category` TEXT NOT NULL, `captureEnabled` INTEGER NOT NULL, `sensitive` INTEGER NOT NULL, `firstSeenAt` INTEGER NOT NULL, `lastSeenAt` INTEGER NOT NULL, `eventCount` INTEGER NOT NULL, PRIMARY KEY(`packageName`))",
+        "fields": [
+          {
+            "fieldPath": "packageName",
+            "columnName": "packageName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "captureEnabled",
+            "columnName": "captureEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sensitive",
+            "columnName": "sensitive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstSeenAt",
+            "columnName": "firstSeenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "lastSeenAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventCount",
+            "columnName": "eventCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "packageName"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "conversations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `appPackage` TEXT NOT NULL, `stableKey` TEXT NOT NULL, `displayName` TEXT NOT NULL, `subtitle` TEXT, `lastEventAt` INTEGER NOT NULL, `eventCount` INTEGER NOT NULL, `unreadCount` INTEGER NOT NULL, `isPinned` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `confidence` TEXT NOT NULL, FOREIGN KEY(`appPackage`) REFERENCES `app_sources`(`packageName`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "appPackage",
+            "columnName": "appPackage",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stableKey",
+            "columnName": "stableKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subtitle",
+            "columnName": "subtitle",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastEventAt",
+            "columnName": "lastEventAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventCount",
+            "columnName": "eventCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unreadCount",
+            "columnName": "unreadCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPinned",
+            "columnName": "isPinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_conversations_appPackage",
+            "unique": false,
+            "columnNames": [
+              "appPackage"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_appPackage` ON `${TABLE_NAME}` (`appPackage`)"
+          },
+          {
+            "name": "index_conversations_appPackage_stableKey",
+            "unique": true,
+            "columnNames": [
+              "appPackage",
+              "stableKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_conversations_appPackage_stableKey` ON `${TABLE_NAME}` (`appPackage`, `stableKey`)"
+          },
+          {
+            "name": "index_conversations_lastEventAt",
+            "unique": false,
+            "columnNames": [
+              "lastEventAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_lastEventAt` ON `${TABLE_NAME}` (`lastEventAt`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "app_sources",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "appPackage"
+            ],
+            "referencedColumns": [
+              "packageName"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "notification_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversationId` INTEGER NOT NULL, `dedupKey` TEXT NOT NULL, `systemKey` TEXT NOT NULL, `packageName` TEXT NOT NULL, `notificationId` INTEGER NOT NULL, `notificationTag` TEXT, `groupKey` TEXT, `channelId` TEXT, `postedAt` INTEGER NOT NULL, `sourceWhen` INTEGER NOT NULL, `capturedAt` INTEGER NOT NULL, `removedAt` INTEGER, `removalReason` INTEGER, `title` TEXT, `text` TEXT, `bigText` TEXT, `textLinesJson` TEXT NOT NULL, `conversationTitle` TEXT, `styleType` TEXT NOT NULL, `category` TEXT, `flags` INTEGER NOT NULL, `isGroupSummary` INTEGER NOT NULL, `isSummaryOnly` INTEGER NOT NULL, `contentHash` TEXT NOT NULL, `parserVersion` INTEGER NOT NULL, `normalizedMessagesJson` TEXT NOT NULL, `rawMetadataJson` TEXT NOT NULL, FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dedupKey",
+            "columnName": "dedupKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemKey",
+            "columnName": "systemKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "packageName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationId",
+            "columnName": "notificationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notificationTag",
+            "columnName": "notificationTag",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "groupKey",
+            "columnName": "groupKey",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "channelId",
+            "columnName": "channelId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "postedAt",
+            "columnName": "postedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceWhen",
+            "columnName": "sourceWhen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "capturedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "removedAt",
+            "columnName": "removedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "removalReason",
+            "columnName": "removalReason",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "bigText",
+            "columnName": "bigText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "textLinesJson",
+            "columnName": "textLinesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationTitle",
+            "columnName": "conversationTitle",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "styleType",
+            "columnName": "styleType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "flags",
+            "columnName": "flags",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isGroupSummary",
+            "columnName": "isGroupSummary",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSummaryOnly",
+            "columnName": "isSummaryOnly",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "contentHash",
+            "columnName": "contentHash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parserVersion",
+            "columnName": "parserVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "normalizedMessagesJson",
+            "columnName": "normalizedMessagesJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawMetadataJson",
+            "columnName": "rawMetadataJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notification_snapshots_conversationId",
+            "unique": false,
+            "columnNames": [
+              "conversationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_snapshots_conversationId` ON `${TABLE_NAME}` (`conversationId`)"
+          },
+          {
+            "name": "index_notification_snapshots_systemKey",
+            "unique": false,
+            "columnNames": [
+              "systemKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_snapshots_systemKey` ON `${TABLE_NAME}` (`systemKey`)"
+          },
+          {
+            "name": "index_notification_snapshots_capturedAt",
+            "unique": false,
+            "columnNames": [
+              "capturedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notification_snapshots_capturedAt` ON `${TABLE_NAME}` (`capturedAt`)"
+          },
+          {
+            "name": "index_notification_snapshots_dedupKey",
+            "unique": true,
+            "columnNames": [
+              "dedupKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_notification_snapshots_dedupKey` ON `${TABLE_NAME}` (`dedupKey`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "conversations",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "conversationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "message_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `conversationId` INTEGER NOT NULL, `sourceSnapshotId` INTEGER NOT NULL, `eventKey` TEXT NOT NULL, `sender` TEXT, `body` TEXT NOT NULL, `sourceTimestamp` INTEGER, `capturedAt` INTEGER NOT NULL, `eventType` TEXT NOT NULL, `attachmentType` TEXT NOT NULL, `occurrenceOrdinal` INTEGER NOT NULL, `isHistoricMessage` INTEGER NOT NULL, `isPossibleEdit` INTEGER NOT NULL, `isRead` INTEGER NOT NULL, FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`sourceSnapshotId`) REFERENCES `notification_snapshots`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSnapshotId",
+            "columnName": "sourceSnapshotId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventKey",
+            "columnName": "eventKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sender",
+            "columnName": "sender",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceTimestamp",
+            "columnName": "sourceTimestamp",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "capturedAt",
+            "columnName": "capturedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventType",
+            "columnName": "eventType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attachmentType",
+            "columnName": "attachmentType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurrenceOrdinal",
+            "columnName": "occurrenceOrdinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isHistoricMessage",
+            "columnName": "isHistoricMessage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPossibleEdit",
+            "columnName": "isPossibleEdit",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isRead",
+            "columnName": "isRead",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_message_events_conversationId",
+            "unique": false,
+            "columnNames": [
+              "conversationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_events_conversationId` ON `${TABLE_NAME}` (`conversationId`)"
+          },
+          {
+            "name": "index_message_events_sourceSnapshotId",
+            "unique": false,
+            "columnNames": [
+              "sourceSnapshotId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_events_sourceSnapshotId` ON `${TABLE_NAME}` (`sourceSnapshotId`)"
+          },
+          {
+            "name": "index_message_events_capturedAt",
+            "unique": false,
+            "columnNames": [
+              "capturedAt"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_message_events_capturedAt` ON `${TABLE_NAME}` (`capturedAt`)"
+          },
+          {
+            "name": "index_message_events_eventKey",
+            "unique": true,
+            "columnNames": [
+              "eventKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_message_events_eventKey` ON `${TABLE_NAME}` (`eventKey`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "conversations",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "conversationId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "notification_snapshots",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sourceSnapshotId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "simple",
+          "tokenizerArgs": [],
+          "contentTable": "",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [],
+        "tableName": "message_search_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`appName` TEXT NOT NULL, `conversationName` TEXT NOT NULL, `sender` TEXT NOT NULL, `body` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "appName",
+            "columnName": "appName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationName",
+            "columnName": "conversationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sender",
+            "columnName": "sender",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "body",
+            "columnName": "body",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "rowid"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "capture_health",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `listenerConnected` INTEGER NOT NULL, `lastConnectedAt` INTEGER, `lastDisconnectedAt` INTEGER, `lastCallbackAt` INTEGER, `lastSuccessfulWriteAt` INTEGER, `lastTestCapturedAt` INTEGER, `pendingQueueCount` INTEGER NOT NULL, `parserFailureCount` INTEGER NOT NULL, `databaseFailureCount` INTEGER NOT NULL, `droppedEventCount` INTEGER NOT NULL, `lastErrorCode` TEXT, `lastErrorAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "listenerConnected",
+            "columnName": "listenerConnected",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastConnectedAt",
+            "columnName": "lastConnectedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastDisconnectedAt",
+            "columnName": "lastDisconnectedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastCallbackAt",
+            "columnName": "lastCallbackAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastSuccessfulWriteAt",
+            "columnName": "lastSuccessfulWriteAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastTestCapturedAt",
+            "columnName": "lastTestCapturedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "pendingQueueCount",
+            "columnName": "pendingQueueCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parserFailureCount",
+            "columnName": "parserFailureCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "databaseFailureCount",
+            "columnName": "databaseFailureCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "droppedEventCount",
+            "columnName": "droppedEventCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastErrorCode",
+            "columnName": "lastErrorCode",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastErrorAt",
+            "columnName": "lastErrorAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7f5018fb64dc57fd2a098896775a8fbb')"
+    ]
+  }
+}

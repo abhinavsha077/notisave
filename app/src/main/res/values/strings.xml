@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Echo Inbox</string>
+    <string name="notification_access_label">Echo Inbox notification capture</string>
+</resources>

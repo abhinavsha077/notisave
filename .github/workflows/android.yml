@@ -1,0 +1,55 @@
+name: Android CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Static privacy and SQL contracts
+        run: |
+          chmod +x scripts/*.sh scripts/*.py
+          ./scripts/test_sql_contract.py
+          ./scripts/verify_privacy_manifest.py
+          ./scripts/audit_project.py
+          ./scripts/test_wrapper_bootstrap.sh
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android 36 platform
+        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Unit tests, lint, and debug APKs
+        run: |
+          chmod +x gradlew scripts/*.sh scripts/*.py
+          ./gradlew --stacktrace \
+            :app:testDebugUnitTest \
+            :app:lintDebug \
+            :app:assembleDebug \
+            :fixture:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: echo-inbox-debug-artifacts
+          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            fixture/build/outputs/apk/debug/*.apk
+            app/build/reports/tests/
+            app/build/reports/lint-results-debug.html
