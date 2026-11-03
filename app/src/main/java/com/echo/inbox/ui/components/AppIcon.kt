@@ -1,6 +1,8 @@
 package com.echo.inbox.ui.components
 
 import android.graphics.drawable.Drawable
+import android.util.LruCache
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -21,9 +23,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.foundation.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private val AppIconCache = object : LruCache<String, ImageBitmap>(120) {}
 
 @Composable
 fun AppIcon(
@@ -33,13 +36,19 @@ fun AppIcon(
     size: Dp = 48.dp,
 ) {
     val context = LocalContext.current
-    val image by produceState<ImageBitmap?>(initialValue = null, packageName) {
-        value = withContext(Dispatchers.IO) {
+    val cacheKey = "$packageName:${size.value.toInt()}"
+    val image by produceState<ImageBitmap?>(initialValue = AppIconCache.get(cacheKey), cacheKey) {
+        if (value != null) return@produceState
+        val loaded = withContext(Dispatchers.IO) {
             runCatching {
                 context.packageManager.getApplicationIcon(packageName)
                     .safeBitmap(size)
                     .asImageBitmap()
             }.getOrNull()
+        }
+        if (loaded != null) {
+            AppIconCache.put(cacheKey, loaded)
+            value = loaded
         }
     }
     val shape = RoundedCornerShape(size / 4)

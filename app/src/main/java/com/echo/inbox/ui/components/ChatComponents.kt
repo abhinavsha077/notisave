@@ -1,8 +1,10 @@
 package com.echo.inbox.ui.components
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -45,12 +47,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +68,8 @@ import com.echo.inbox.data.local.MessageEventEntity
 import com.echo.inbox.ui.theme.EchoTheme
 import java.io.File
 import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val AVATAR_COLORS = listOf(
     Color(0xFF00897B),
@@ -513,24 +519,60 @@ fun FinanceAlertCard(
     }
 }
 
+private val ThumbnailCache = object : LruCache<String, ImageBitmap>(60) {}
+
 @Composable
 private fun MediaImageThumbnail(mediaPath: String) {
-    val bitmap = remember(mediaPath) {
-        runCatching {
-            val file = File(mediaPath)
-            if (file.exists()) BitmapFactory.decodeFile(file.absolutePath) else null
-        }.getOrNull()
+    val bitmapState = produceState<ImageBitmap?>(initialValue = ThumbnailCache.get(mediaPath), key1 = mediaPath) {
+        if (value != null) return@produceState
+        val loaded = withContext(Dispatchers.IO) {
+            runCatching {
+                val file = File(mediaPath)
+                if (!file.exists()) return@runCatching null
+                val boundsOpts = BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                BitmapFactory.decodeFile(file.absolutePath, boundsOpts)
+                val targetSize = 512
+                var sample = 1
+                if (boundsOpts.outHeight > targetSize || boundsOpts.outWidth > targetSize) {
+                    val halfHeight = boundsOpts.outHeight / 2
+                    val halfWidth = boundsOpts.outWidth / 2
+                    while ((halfHeight / sample) >= targetSize && (halfWidth / sample) >= targetSize) {
+                        sample *= 2
+                    }
+                }
+                val decodeOpts = BitmapFactory.Options().apply {
+                    inSampleSize = sample
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                }
+                BitmapFactory.decodeFile(file.absolutePath, decodeOpts)?.asImageBitmap()
+            }.getOrNull()
+        }
+        if (loaded != null) {
+            ThumbnailCache.put(mediaPath, loaded)
+            value = loaded
+        }
     }
 
+    val bitmap = bitmapState.value
     if (bitmap != null) {
         Image(
-            bitmap = bitmap.asImageBitmap(),
+            bitmap = bitmap,
             contentDescription = "Captured Image",
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = 220.dp)
                 .clip(RoundedCornerShape(EchoTheme.radius.sm)),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(EchoTheme.radius.sm))
+                .background(EchoTheme.colors.elevated),
         )
     }
 }

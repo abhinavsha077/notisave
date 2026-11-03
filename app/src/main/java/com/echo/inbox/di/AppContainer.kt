@@ -50,7 +50,7 @@ class DefaultAppContainer(context: Context) : AppContainer {
         AppSourceRepository(database, database.appSourceDao())
     }
     override val notificationRepository: NotificationRepository by lazy {
-        NotificationRepository(appContext, database)
+        NotificationRepository(appContext, database, mediaStorageManager)
     }
     override val captureHealthRepository: CaptureHealthRepository by lazy {
         CaptureHealthRepository(database.captureHealthDao())

@@ -11,11 +11,13 @@ import com.echo.inbox.data.local.ExportMessageRow
 import com.echo.inbox.data.local.MessageEventEntity
 import com.echo.inbox.data.local.SearchResultRow
 import com.echo.inbox.data.local.DatabaseFactory
+import com.echo.inbox.platform.MediaStorageManager
 import kotlinx.coroutines.flow.Flow
 
 class NotificationRepository(
     private val context: Context,
     private val database: EchoDatabase,
+    private val mediaStorageManager: MediaStorageManager? = null,
 ) {
     private val appDao = database.appSourceDao()
     private val conversationDao = database.conversationDao()
@@ -48,21 +50,25 @@ class NotificationRepository(
     suspend fun togglePinned(id: Long) = conversationDao.togglePinned(id)
 
     suspend fun deleteConversation(id: Long) {
+        val mediaPaths = messageDao.mediaPathsForConversation(id)
         database.withTransaction {
             val messageIds = maintenanceDao.messageIdsForConversation(id)
             if (messageIds.isNotEmpty()) searchDao.deleteRows(messageIds)
             conversationDao.delete(id)
             maintenanceDao.recalculateAppCounts()
         }
+        mediaPaths.forEach { path -> mediaStorageManager?.deleteFile(path) }
     }
 
     suspend fun deleteAppData(packageName: String) {
+        val mediaPaths = messageDao.mediaPathsForApp(packageName)
         database.withTransaction {
             val messageIds = messageDao.idsForApp(packageName)
             if (messageIds.isNotEmpty()) searchDao.deleteRows(messageIds)
             conversationDao.deleteForApp(packageName)
             maintenanceDao.resetAppCount(packageName)
         }
+        mediaPaths.forEach { path -> mediaStorageManager?.deleteFile(path) }
     }
 
     suspend fun clearCapturedData() {
@@ -73,19 +79,25 @@ class NotificationRepository(
             maintenanceDao.deleteAllConversations()
             maintenanceDao.resetAllAppCounts()
         }
+        mediaStorageManager?.clearAll()
     }
 
-    suspend fun deleteOlderThan(cutoff: Long): Int = database.withTransaction {
-        // Snapshot deletion cascades to its message rows. Remove every affected FTS row first,
-        // including messages whose source timestamp is newer than an old snapshot timestamp.
-        val messageIds = messageDao.idsAffectedByRetention(cutoff)
-        if (messageIds.isNotEmpty()) searchDao.deleteRows(messageIds)
-        snapshotDao.deleteOlderThan(cutoff)
-        val deleted = messageDao.deleteOlderThan(cutoff)
-        maintenanceDao.recalculateConversations()
-        maintenanceDao.deleteEmptyConversations()
-        maintenanceDao.recalculateAppCounts()
-        deleted
+    suspend fun deleteOlderThan(cutoff: Long): Int {
+        val mediaPaths = messageDao.mediaPathsAffectedByRetention(cutoff)
+        val deleted = database.withTransaction {
+            // Snapshot deletion cascades to its message rows. Remove every affected FTS row first,
+            // including messages whose source timestamp is newer than an old snapshot timestamp.
+            val messageIds = messageDao.idsAffectedByRetention(cutoff)
+            if (messageIds.isNotEmpty()) searchDao.deleteRows(messageIds)
+            snapshotDao.deleteOlderThan(cutoff)
+            val count = messageDao.deleteOlderThan(cutoff)
+            maintenanceDao.recalculateConversations()
+            maintenanceDao.deleteEmptyConversations()
+            maintenanceDao.recalculateAppCounts()
+            count
+        }
+        mediaPaths.forEach { path -> mediaStorageManager?.deleteFile(path) }
+        return deleted
     }
 
     suspend fun stats(): DataStatsRow = maintenanceDao.stats()

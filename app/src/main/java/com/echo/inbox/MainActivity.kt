@@ -36,7 +36,8 @@ class MainActivity : FragmentActivity() {
         setContent {
             val settings by container.settingsRepository.settings.collectAsStateWithLifecycle()
             SideEffect {
-                if (settings.screenshotProtectionEnabled) {
+                val shouldSecure = settings.screenshotProtectionEnabled || (settings.biometricLockEnabled && !unlocked)
+                if (shouldSecure) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)

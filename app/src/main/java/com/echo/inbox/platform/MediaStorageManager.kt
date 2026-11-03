@@ -1,4 +1,4 @@
-﻿package com.echo.inbox.platform
+package com.echo.inbox.platform
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -18,18 +18,28 @@ class MediaStorageManager(private val context: Context) {
 
     fun saveBitmap(bitmap: Bitmap): String? {
         return runCatching {
+            val maxDimension = 1280
+            val scaled = if (bitmap.width > maxDimension || bitmap.height > maxDimension) {
+                val ratio = minOf(maxDimension.toFloat() / bitmap.width, maxDimension.toFloat() / bitmap.height)
+                val targetW = (bitmap.width * ratio).toInt().coerceAtLeast(1)
+                val targetH = (bitmap.height * ratio).toInt().coerceAtLeast(1)
+                Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+            } else {
+                bitmap
+            }
             val fileName = "img_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}.jpg"
             val file = File(mediaDir, fileName)
             FileOutputStream(file).use { out ->
-                // Compress to JPEG with high quality and manageable size
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                scaled.compress(Bitmap.CompressFormat.JPEG, 80, out)
+            }
+            if (scaled !== bitmap) {
+                scaled.recycle()
             }
             file.absolutePath
         }.getOrNull()
     }
 
     fun saveIcon(icon: Icon): String? {
-        if (Build.VERSION.SDK_INT < 23) return null
         return runCatching {
             val drawable = icon.loadDrawable(context)
             if (drawable is BitmapDrawable && drawable.bitmap != null) {
@@ -43,8 +53,24 @@ class MediaStorageManager(private val context: Context) {
     fun saveUri(uriString: String): String? {
         return runCatching {
             val uri = Uri.parse(uriString)
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "content" && scheme != "android.resource") return null
+
+            // First decode bounds only to avoid loading unbounded resolution into memory
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             context.contentResolver.openInputStream(uri)?.use { input ->
-                val bitmap = BitmapFactory.decodeStream(input) ?: return null
+                BitmapFactory.decodeStream(input, null, options)
+            } ?: return null
+
+            val targetDim = 1280
+            var sampleSize = 1
+            while (options.outWidth / (sampleSize * 2) >= targetDim && options.outHeight / (sampleSize * 2) >= targetDim) {
+                sampleSize *= 2
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val bitmap = BitmapFactory.decodeStream(input, null, decodeOptions) ?: return null
                 saveBitmap(bitmap)
             }
         }.getOrNull()
@@ -52,13 +78,31 @@ class MediaStorageManager(private val context: Context) {
 
     fun getFile(path: String?): File? {
         if (path.isNullOrBlank()) return null
-        val file = File(path)
-        return if (file.exists()) file else null
+        return runCatching {
+            val file = File(path)
+            val canonicalFile = file.canonicalFile
+            val canonicalBase = mediaDir.canonicalFile
+            // Verify path is within media directory to prevent directory traversal
+            if (canonicalFile.path.startsWith(canonicalBase.path + File.separator) && file.exists()) {
+                file
+            } else {
+                null
+            }
+        }.getOrNull()
     }
 
     fun deleteFile(path: String?): Boolean {
         if (path.isNullOrBlank()) return false
-        return runCatching { File(path).delete() }.getOrDefault(false)
+        return runCatching {
+            val file = File(path)
+            val canonicalFile = file.canonicalFile
+            val canonicalBase = mediaDir.canonicalFile
+            if (canonicalFile.path.startsWith(canonicalBase.path + File.separator) && file.exists()) {
+                file.delete()
+            } else {
+                false
+            }
+        }.getOrDefault(false)
     }
 
     fun clearAll(): Boolean {

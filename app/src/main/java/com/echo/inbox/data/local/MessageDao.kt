@@ -29,6 +29,9 @@ interface MessageDao {
     @Query("DELETE FROM message_events WHERE conversationId = :conversationId")
     suspend fun deleteForConversation(conversationId: Long): Int
 
+    @Query("SELECT mediaPath FROM message_events WHERE conversationId = :conversationId AND mediaPath IS NOT NULL")
+    suspend fun mediaPathsForConversation(conversationId: Long): List<String>
+
     @Query(
         """
         SELECT m.id FROM message_events m
@@ -40,6 +43,15 @@ interface MessageDao {
 
     @Query(
         """
+        SELECT m.mediaPath FROM message_events m
+        INNER JOIN conversations c ON c.id = m.conversationId
+        WHERE c.appPackage = :packageName AND m.mediaPath IS NOT NULL
+        """,
+    )
+    suspend fun mediaPathsForApp(packageName: String): List<String>
+
+    @Query(
+        """
         SELECT m.id
         FROM message_events m
         INNER JOIN notification_snapshots s ON s.id = m.sourceSnapshotId
@@ -47,6 +59,16 @@ interface MessageDao {
         """,
     )
     suspend fun idsAffectedByRetention(cutoff: Long): List<Long>
+
+    @Query(
+        """
+        SELECT m.mediaPath
+        FROM message_events m
+        INNER JOIN notification_snapshots s ON s.id = m.sourceSnapshotId
+        WHERE (m.capturedAt < :cutoff OR s.capturedAt < :cutoff) AND m.mediaPath IS NOT NULL
+        """,
+    )
+    suspend fun mediaPathsAffectedByRetention(cutoff: Long): List<String>
 
     @Query("DELETE FROM message_events WHERE capturedAt < :cutoff")
     suspend fun deleteOlderThan(cutoff: Long): Int
